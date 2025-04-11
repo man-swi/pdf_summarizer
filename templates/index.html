@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Summarizer</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>📚 PDF Summarizer</h1>
+        <p>Upload a PDF, choose settings, and get an AI-generated summary.</p>
+    </header>
+
+    <main>
+        <section id="input-section">
+            <h2>Settings</h2>
+            <form id="summary-form">
+                <div class="form-group">
+                    <label for="pdfFile">1. Upload PDF Document:</label>
+                    <input type="file" id="pdfFile" name="pdfFile" accept=".pdf" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="grade">2. Target Grade Level: <span id="grade-value">6</span></label>
+                    <input type="range" id="grade" name="grade" min="1" max="12" value="6">
+                </div>
+
+                <div class="form-group">
+                    <label>3. Target Summary Length:</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="duration" value="10"> 10 Mins (~1.2k-1.6k words)</label>
+                        <label><input type="radio" name="duration" value="20" checked> 20 Mins (~2.4k-3.2k words)</label>
+                        <label><input type="radio" name="duration" value="30"> 30 Mins (~3.6k-4.5k words)</label>
+                    </div>
+                </div>
+
+                <details class="form-group">
+                    <summary>Advanced & Speed Options</summary>
+                    <div class="advanced-options">
+                        <label title="Use Tesseract to read text from images (can be very slow).">
+                            <input type="checkbox" id="ocr" name="ocr"> Enable Image OCR
+                        </label>
+                        <hr> <!-- Separator -->
+                        <label title="Attempt to complete potentially fragmented sentences (adds processing time).">
+                            <input type="checkbox" id="sentenceCompletion" name="sentenceCompletion" checked> Enable Sentence Completion
+                        </label>
+                        <label title="Use AI embeddings to remove duplicate sentences (adds processing time).">
+                            <input type="checkbox" id="deduplication" name="deduplication" checked> Enable Semantic Deduplication
+                        </label>
+                         <hr> <!-- Separator -->
+                        <label for="chunkSize">Chunk Size (words):</label>
+                        <input type="number" id="chunkSize" name="chunkSize" value="500" min="100" step="50">
+                        <label for="overlap">Chunk Overlap (words):</label>
+                        <input type="number" id="overlap" name="overlap" value="50" min="0" step="10">
+                    </div>
+                </details>
+
+                <button type="submit" id="submit-button">✨ Generate Summary ✨</button>
+            </form>
+        </section>
+
+        <section id="output-section">
+            <h2>Status & Output</h2>
+            <div id="status-area">
+                <div id="loader" class="loader" style="display: none;"></div>
+                <p id="status-message">Ready. Select a PDF and options.</p>
+            </div>
+            <div id="summary-output" style="display: none;">
+                <h3>Generated Summary (<span id="word-count">0</span> words)</h3>
+                 <p><em>(Processing Time: <span id="processing-time">0</span> seconds)</em></p> <!-- Show time -->
+                <textarea id="summary-text" rows="20" readonly></textarea>
+                <button id="download-button" style="display: none;">⬇️ Download Summary</button>
+            </div>
+             <p id="error-area" class="error-message" style="display: none;"></p>
+        </section>
+    </main>
+
+    <footer>
+        <p>PDF Summarizer Interface</p>
+    </footer>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
