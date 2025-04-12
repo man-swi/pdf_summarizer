@@ -4,6 +4,7 @@ import re
 import nltk
 from nltk.stem import PorterStemmer
 import time
+import os
 
 # Initialize stemmer globally if needed elsewhere, or locally if only here
 # stemmer = PorterStemmer()
