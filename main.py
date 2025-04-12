@@ -50,7 +50,7 @@ ENABLE_SEMANTIC_DEDUPLICATION_DEFAULT = True
 MAX_COMPLETION_CALLS = 10
 
 # --- MODIFIED: Model Name and Quantization Setup ---
-LLM_MODEL_NAME = "vikhyatk/Llama-4-Scout-17B-16E-Instruct" # <<< CHANGED Model Name
+LLM_MODEL_NAME = "meta-llama/Llama-4-Scout-17B-16E-Instruct" # <<< CHANGED Model Name
 EMBEDDER_MODEL_NAME = 'all-MiniLM-L6-v2'
 
 # Configure 4-bit quantization (same as in app.py)
