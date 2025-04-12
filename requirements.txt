@@ -2,26 +2,30 @@
 Flask>=3.0.0
 gunicorn
 
-# Machine Learning & NLP
-torch
-transformers>=4.38.0  # Keep somewhat recent for features/fixes
-sentence-transformers>=2.6.0 # Use a recent version
-accelerate>=0.25.0 # For model loading and quantization support
-bitsandbytes>=0.41.1 # For 4-bit quantization
+# Unsloth (Installs optimized torch, bitsandbytes, accelerate etc.)
+unsloth
 
-# PDF Processing
+# Transformers version specified in the Maverick example
+# (Although Unsloth might install a compatible version, let's keep it for now)
+transformers==4.51.0
+
+# Other Core Dependencies needed by your app specifically
+sentence-transformers>=2.6.0 # For the separate embedder
+nltk>=3.8.0
 PyMuPDF # fitz package
 pytesseract
-
-# Text Processing & Utilities
-nltk>=3.8.0
-numpy
 Pillow # PIL package
+numpy
 
 # Common Dependencies (often pulled in, listing explicitly can help)
 requests
 packaging
-huggingface-hub>=0.20.0 # Often needed by transformers
+huggingface-hub>=0.20.0
+
+# --- Removed Libraries ---
+# We are relying on 'unsloth' to install correct versions of:
+# torch, accelerate, bitsandbytes, xformers (if needed), triton etc.
+# Also removed unrelated dev/notebook/streamlit/data libs as before.
 
 # --- Removed Libraries ---
 # Removed: altair, asttokens, attrs, backcall, beautifulsoup4, bleach, blinker,
