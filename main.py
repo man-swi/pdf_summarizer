@@ -2,24 +2,24 @@
 
 import os
 import re
+# --- MOVE UNSLOTH IMPORT HERE ---
+from unsloth import FastLanguageModel
+# --- END MOVE ---
 import pytesseract
 from PIL import Image
 import numpy as np
-import torch
+import torch # Keep torch import after unsloth
 from nltk.stem import PorterStemmer
 import nltk
 import fitz # PyMuPDF
-from sentence_transformers import SentenceTransformer, util # Keep for embedder
-
-# --- MODIFIED: Import Unsloth ---
-from unsloth import FastLanguageModel
-# Keep AutoTokenizer for the non-Unsloth embedder model if needed
-from transformers import AutoTokenizer # Keep for embedder
-
-import argparse
+from sentence_transformers import SentenceTransformer, util
+# Keep other transformers imports if needed (like AutoTokenizer for embedder)
+from transformers import AutoTokenizer #, BitsAndBytesConfig # Removed BNB config import
 import traceback
+import tempfile
+import io
+from flask import Flask, request, render_template, jsonify, send_from_directory
 import time
-import io # Needed for extract_text_from_pdf image handling
 
 # --- NLTK Download ---
 try:
@@ -94,8 +94,8 @@ try:
         max_seq_length = MAX_SEQ_LENGTH,
         dtype = None,              # Unsloth handles dtype optimization with 4bit
         load_in_4bit = True,       # Explicitly load in 4bit
-        device_map = "auto",       # Let Unsloth / Accelerate handle device placement
-        llm_int8_enable_fp32_cpu_offload = True, # Enable CPU offload for large models
+        device_map = {'': 0},       # Let Unsloth / Accelerate handle device placement
+        # llm_int8_enable_fp32_cpu_offload = True, # Enable CPU offload for large models
         # token = "hf_...", # Add token if needed
     )
     print("Unsloth LLM Model and Tokenizer loaded successfully!")

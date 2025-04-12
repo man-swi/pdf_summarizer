@@ -2,22 +2,22 @@
 Flask>=3.0.0
 gunicorn
 
-# Unsloth (Installs optimized torch, bitsandbytes, accelerate etc.)
-unsloth
-
-# Transformers version specified in the Maverick example
-# (Although Unsloth might install a compatible version, let's keep it for now)
-transformers==4.51.0
+# Standard Transformers & Dependencies
+# Use versions compatible with the workaround documentation
+torch # Let pip choose a compatible version based on system/CUDA
+transformers>=4.35.0 # Ensure at least this version
+accelerate>=0.24.0
+bitsandbytes>=0.41.1
 
 # Other Core Dependencies needed by your app specifically
-sentence-transformers>=2.6.0 # For the separate embedder
+sentence-transformers>=2.6.0
 nltk>=3.8.0
 PyMuPDF # fitz package
 pytesseract
 Pillow # PIL package
 numpy
 
-# Common Dependencies (often pulled in, listing explicitly can help)
+# Common Dependencies
 requests
 packaging
 huggingface-hub>=0.20.0
