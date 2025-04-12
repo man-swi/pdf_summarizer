@@ -31,7 +31,7 @@ print(f"INFO (app): PyTorch device detected: {device}")
 
 # --- Model Configuration ---
 # Using standard transformers loading with offload workaround for unsloth weights
-LLM_MODEL_NAME = "unsloth/Llama-4-Scout-17B-16E-unsloth-dynamic-bnb-4bit"
+LLM_MODEL_NAME = "meta-llama/Llama-3.2-11B-Vision-Instruct"
 EMBEDDER_MODEL_NAME = 'all-MiniLM-L6-v2'
 
 # Configure 4-bit quantization
@@ -61,14 +61,13 @@ try:
     print(f"INFO (app): Loading LLM model: {LLM_MODEL_NAME} with quantization & offloading...")
     # Use standard AutoModelForCausalLM with offload flags based on previous errors
     model = AutoModelForCausalLM.from_pretrained(
-        LLM_MODEL_NAME,
-        quantization_config=quantization_config,
-        device_map="auto",
-        offload_folder=offload_directory,
-        offload_state_dict=True,
-        llm_int8_enable_fp32_cpu_offload=True # Keep based on ValueError message
-        # Add token=os.environ.get("HF_TOKEN") if needed for gated models
+    LLM_MODEL_NAME,
+    quantization_config=quantization_config,
+    device_map="auto",
+    offload_folder=offload_directory,
+    offload_state_dict=True
     )
+
     print("INFO (app): LLM Model loaded successfully!")
 
 except Exception as e:

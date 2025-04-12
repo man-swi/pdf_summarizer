@@ -1,0 +1,320 @@
+/* static/style.css (Updated) */
+
+/* Basic Reset & Body Styling */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px; /* Base font size */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    line-height: 1.6;
+    background-color: #f8f9fa; /* Lighter gray */
+    color: #343a40; /* Darker gray */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-size: 1rem;
+}
+
+header, footer {
+    background-color: #4a6fa5; /* Primary blue */
+    color: #ffffff;
+    padding: 1.2rem 1rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+header p {
+    font-size: 1rem;
+    color: #e0e0e0;
+}
+
+main {
+    flex-grow: 1;
+    max-width: 1200px; /* Limit content width */
+    width: 95%; /* Responsive width */
+    margin: 2rem auto;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: 1fr; /* Single column default */
+    gap: 2rem;
+}
+
+/* Input and Output Sections Styling */
+#input-section, #output-section {
+    background-color: #ffffff;
+    padding: 1.5rem 2rem; /* More padding */
+    border-radius: 8px;
+    border: 1px solid #dee2e6; /* Subtle border */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+h2, h3 {
+    color: #333; /* Darker heading */
+    margin-bottom: 1.5rem; /* More space below heading */
+    border-bottom: 2px solid #e9ecef; /* Lighter border */
+    padding-bottom: 0.6rem;
+    font-weight: 600;
+}
+
+/* Form Styling Improvements */
+.form-group {
+    margin-bottom: 1.5rem; /* Increased spacing */
+}
+
+label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 600; /* Bolder labels */
+    color: #495057; /* Slightly muted label color */
+    font-size: 0.95rem;
+}
+
+input[type="file"],
+input[type="number"],
+textarea {
+    width: 100%;
+    padding: 0.75rem 1rem; /* More padding */
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+input[type="file"] {
+    cursor: pointer;
+    background-color: #f1f3f5; /* Slight background for file input */
+    padding: 0.6rem;
+}
+input[type="file"]::file-selector-button { /* Style the button part */
+    padding: 0.5rem 1rem;
+    border: none;
+    background-color: #6c757d; /* Secondary color */
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 1rem;
+    transition: background-color 0.2s ease;
+}
+input[type="file"]::file-selector-button:hover {
+    background-color: #5a6268;
+}
+
+
+input[type="number"] {
+    max-width: 100px; /* Limit width of number inputs */
+}
+
+input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+    margin-top: 0.2rem;
+}
+
+#grade-value {
+    font-weight: bold;
+    color: #4a6fa5;
+    margin-left: 0.5rem;
+    display: inline-block;
+    min-width: 1.5em; /* Ensure space for two digits */
+    text-align: center;
+}
+
+.radio-group label, .toggle-group label {
+    display: block;
+    margin-bottom: 0.7rem; /* Spacing for radio/checkbox */
+    font-weight: normal; /* Normal weight for options */
+    cursor: pointer;
+    font-size: 0.95rem;
+    display: flex; /* Align checkbox and text */
+    align-items: center;
+}
+.radio-group input[type="radio"], .toggle-group input[type="checkbox"] {
+    margin-right: 0.6rem;
+    width: 16px; /* Slightly larger */
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Advanced Options Styling */
+details.form-group {
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    padding: 0.8rem 1rem;
+    background-color: #f8f9fa;
+}
+
+details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #4a6fa5;
+    list-style: none; /* Remove default triangle */
+    display: block; /* Ensure it takes full width */
+    position: relative;
+    padding-left: 1.5rem; /* Space for custom marker */
+}
+
+details summary::before { /* Custom marker */
+    content: '▶';
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 0.8em;
+    transition: transform 0.2s ease-in-out;
+}
+
+details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.advanced-options {
+    padding: 1rem 0 0 1.5rem; /* Indent content */
+    margin-top: 0.8rem;
+    border-top: 1px solid #e0e0e0; /* Separator */
+}
+.advanced-options label {
+    display: inline-block; /* Layout number inputs better */
+    margin-right: 1.5rem; /* More space between inputs */
+    font-weight: normal;
+    margin-bottom: 0.5rem; /* Space below number inputs */
+}
+.advanced-options input[type="number"] {
+    width: 80px; /* Smaller width for number inputs */
+    display: inline-block;
+    margin-left: 0.3rem;
+}
+
+
+/* Buttons */
+button[type="submit"], #download-button {
+    display: block;
+    width: 100%;
+    padding: 0.9rem 1.5rem; /* Larger padding */
+    background-color: #007bff; /* Standard Bootstrap blue */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    margin-top: 1.5rem;
+}
+
+button[type="submit"]:hover, #download-button:hover {
+    background-color: #0056b3; /* Darker blue */
+}
+button[type="submit"]:active, #download-button:active {
+    transform: scale(0.98); /* Click effect */
+}
+
+button:disabled {
+    background-color: #adb5bd; /* Muted disabled color */
+    cursor: not-allowed;
+}
+button:disabled:hover {
+     background-color: #adb5bd;
+}
+
+/* Status and Output Area Styling */
+#status-area {
+    margin-bottom: 1rem;
+    padding: 1rem 1.5rem;
+    background-color: #e7f3fe; /* Light blue background */
+    border-left: 5px solid #4a6fa5;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem; /* More space */
+    font-size: 1rem;
+}
+#status-message {
+    margin: 0;
+    flex-grow: 1;
+}
+
+#summary-output {
+    margin-top: 1.5rem;
+}
+
+.summary-info {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    align-items: center;
+    gap: 0.5rem 1rem; /* Row and column gap */
+    margin-bottom: 1rem;
+    color: #6c757d; /* Secondary text color */
+    font-size: 0.9rem;
+}
+.summary-info h3 {
+    margin: 0; /* Reset margin for h3 inside this div */
+    padding: 0;
+    border: none;
+    color: #333;
+    font-size: 1.2rem;
+}
+.summary-info span {
+    white-space: nowrap; /* Prevent wrapping within spans */
+}
+
+
+#summary-output textarea {
+    background-color: #fdfdff; /* Slightly off-white */
+    font-family: "Consolas", "Monaco", monospace; /* Monospace font */
+    font-size: 0.9rem;
+    line-height: 1.5;
+    min-height: 400px; /* Taller text area */
+    border-color: #ced4da;
+}
+
+.error-message {
+    color: #721c24; /* Darker red */
+    background-color: #f8d7da; /* Light red background */
+    border: 1px solid #f5c6cb;
+    padding: 1rem 1.5rem;
+    border-radius: 4px;
+    margin-top: 1.5rem;
+    font-weight: 500;
+}
+
+/* Loader CSS */
+.loader {
+    border: 5px solid #e9ecef; /* Light grey */
+    border-top: 5px solid #007bff; /* Blue */
+    border-radius: 50%;
+    width: 25px; /* Slightly smaller */
+    height: 25px;
+    animation: spin 1s linear infinite;
+    flex-shrink: 0; /* Prevent loader from shrinking */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive Layout */
+@media (min-width: 992px) { /* Use a larger breakpoint for two columns */
+    main {
+        grid-template-columns: 1fr 1.5fr; /* Input slightly smaller than output */
+        width: 90%; /* Slightly wider on large screens */
+    }
+}
+
+footer {
+    margin-top: 3rem; /* More space before footer */
+    padding: 1rem;
+    font-size: 0.9rem;
+}
