@@ -314,12 +314,91 @@ def determine_reading_level(grade):
     return level, desc
 
 # Prompts dictionary (Keep the enhanced versions)
+# --- Prompts Dictionary (Refined for Llama-4-Scout-17B-Instruct) ---
 prompts = {
-    "lower": { "standard": ("..."), "math": ("...") }, # Keep full prompts
-    "middle": { "standard": ("..."), "math": ("...") }, # Keep full prompts
-    "higher": { "standard": ("..."), "math": ("...") } # Keep full prompts
-    # <<< PASTE THE FULL PROMPTS DICTIONARY HERE FROM YOUR PREVIOUS VERSION >>>
+    "lower": { # Grades 1-3 (Ages 6-8) - Focus: Extreme Simplicity, Core Idea
+        "standard": (
+            "You are summarizing text for a young child (grades 1-3, ages 6-8).\n"
+            "Instructions:\n"
+            "1. Use VERY simple words and extremely short sentences.\n"
+            "2. Start with the heading '# Simple Summary'.\n"
+            "3. Under the heading, explain the absolute main idea in one simple sentence.\n"
+            "4. Then, under a '## Key Points' heading, list 3-5 key points using bullet points '- '. Each point must be a full, simple sentence.\n"
+            "5. Do NOT include complex details, numbers, or jargon.\n"
+            "6. Finish with ONE fun, simple activity (like drawing or a simple question) under the heading '## Fun Activity'.\n"
+            "7. Use clear Markdown formatting for headings and bullets.\n\n"
+            "Text to summarize:\n{text}"
+        ),
+        "math": (
+            "You are explaining a math topic to a young child (grades 1-3, ages 6-8).\n"
+            "Instructions:\n"
+            "1. Use very simple words, short sentences, and analogies (like counting toys or sharing cookies).\n"
+            "2. Use very small, simple numbers in examples.\n"
+            "3. Start with the main heading '# Math Fun'.\n"
+            "4. Explain the main math idea very simply under the heading '## What We Learned'.\n"
+            "5. If there are steps, list them very simply under '## Steps' using numbers (1., 2.).\n"
+            "6. Give one clear, simple example with small numbers under '## Example'.\n"
+            "7. Finish with ONE easy practice question or drawing task under '## Practice Time'.\n"
+            "8. Use clear Markdown formatting for headings and numbered lists.\n\n"
+            "Text to explain:\n{text}"
+        )
+    },
+    "middle": { # Grades 4-6 (Ages 9-11) - Focus: Main Topics, Clear Explanation
+        "standard": (
+            "You are summarizing text for a student in grades 4-6 (ages 9-11).\n"
+            "Instructions:\n"
+            "1. Start with the main heading '# Summary'.\n"
+            "2. Identify the 2-4 most important main topics or sections from the text.\n"
+            "3. For each main topic, create a clear subheading using '## Topic Name'.\n"
+            "4. Under each subheading, use bullet points '- ' to list the key information and supporting details. Use clear, complete sentences.\n"
+            "5. Explain any important terms simply.\n"
+            "6. Ensure the summary flows logically and synthesizes information, don't just list disconnected facts.\n"
+            "7. Conclude with ONE practical activity or thought-provoking question related to the text under the heading '## Try This'.\n"
+            "8. Use clear Markdown formatting for headings and bullets.\n\n"
+            "Text to summarize:\n{text}"
+        ),
+        "math": (
+            "You are explaining a math concept to a student in grades 4-6 (ages 9-11).\n"
+            "Instructions:\n"
+            "1. Start with the heading '# Math Explained'.\n"
+            "2. Explain the core math concept clearly and concisely under the heading '## The Concept'.\n"
+            "3. Provide a clear, step-by-step example of a typical problem under '## Step-by-Step Example'. Use numbered steps (1., 2.). Show the work clearly.\n"
+            "4. Briefly explain why this math is useful or where it might be applied under '## Why It Matters'.\n"
+            "5. Conclude with ONE relevant practice problem under '## Practice Problem'. If possible, provide the answer separately or indicate how to check it.\n"
+            "6. Use clear language and structure the output using Markdown headings and numbered lists.\n\n"
+            "Text to explain:\n{text}"
+        )
+    },
+    "higher": { # Grades 7-12 (Ages 12-18) - Focus: Synthesis, Analysis, Structure
+        "standard": (
+            "You are creating a comprehensive, well-structured summary for a high school student (grades 7-12, ages 12-18).\n"
+            "Instructions:\n"
+            "1. Start with the main heading '# Comprehensive Summary'.\n"
+            "2. Identify the key themes, arguments, sections, or concepts presented in the text.\n"
+            "3. Create logical subheadings ('## Theme/Section Name') for each key area.\n"
+            "4. Under each subheading, **synthesize** the essential information. Use clear paragraphs for explanation and bullet points '- ' for specific details, evidence, or examples where appropriate.\n"
+            "5. Analyze or evaluate points where relevant, rather than just listing information.\n"
+            "6. Use appropriate academic vocabulary but ensure clarity. Define key technical terms if necessary.\n"
+            "7. If relevant, include a section '## Connections' discussing real-world implications, applications, or connections to other subjects.\n"
+            "8. Conclude with ONE thought-provoking question, potential research idea, or analysis task under the heading '## Further Thinking'.\n"
+            "9. Structure the entire output logically and clearly using Markdown formatting (headings, subheadings, paragraphs, lists).\n\n"
+            "Text to summarize:\n{text}"
+        ),
+        "math": (
+            "You are explaining an advanced math topic for a high school student (grades 7-12, ages 12-18).\n"
+            "Instructions:\n"
+            "1. Start with the main heading '# Advanced Math Concepts'.\n"
+            "2. Provide concise definitions of key terms and concepts under the heading '## Definitions'.\n"
+            "3. Explain the core theory, theorem, or method rigorously under '## Core Theory'. Use clear paragraphs and potentially bullet points for key steps or properties.\n"
+            "4. Include a non-trivial worked example demonstrating the concept or technique under '## Worked Example'. Show all steps clearly and explain the reasoning.\n"
+            "5. Discuss applications or connections to other fields (e.g., science, computer science, engineering, economics) under '## Applications'.\n"
+            "6. Conclude with ONE challenging problem or an extension idea for further exploration under '## Challenge'.\n"
+            "7. Use appropriate mathematical notation consistently (preserve LaTeX if present in source, otherwise use standard math symbols). Structure the output clearly using Markdown headings and formatting.\n\n"
+            "Text to explain:\n{text}"
+        )
+    }
 }
+# --- End Prompts ---
 
 
 # --- MODIFIED: model_generate with robust length calculation ---
