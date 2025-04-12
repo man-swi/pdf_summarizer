@@ -1,29 +1,19 @@
-# llm_utils.py
-
 import re
 import torch
 import time
 import traceback
 from nltk.stem import PorterStemmer
+from sentence_transformers import util  # FIXED: Missing import
 
-# We need access to the globally loaded model and tokenizer
-# This assumes app.py imports this module *after* loading models
-# A cleaner approach might involve passing model/tokenizer explicitly or using a class.
-# For simplicity now, we rely on global scope from app.py / main.py.
-# --- Need to import from app.py/main.py or pass them ---
-# Example: from __main__ import model, tokenizer, embedder # If running standalone main.py
-# Or: Pass model, tokenizer, embedder into functions
-
-# --- Constants ---
-MAX_COMPLETION_CALLS = 10
-# Placeholder for global model/tokenizer if not passed directly
+# Global placeholders
 model = None
 tokenizer = None
 embedder = None
-stemmer = PorterStemmer() # Keep stemmer local or global
+stemmer = PorterStemmer()
+
+MAX_COMPLETION_CALLS = 10
 
 def initialize_globals(llm_model, llm_tokenizer, sentence_embedder):
-    """Helper to set global variables if needed."""
     global model, tokenizer, embedder
     model = llm_model
     tokenizer = llm_tokenizer
@@ -421,43 +411,66 @@ def enhanced_post_process(summary, grade_level_category, enable_completion=True,
 
 # --- remove_duplicates_semantic function ---
 def remove_duplicates_semantic(points, similarity_threshold=0.90, batch_size=64):
-    """Removes semantically similar points using Sentence Transformers."""
-    # Relies on global 'embedder'
-    if not points or not embedder or len(points)<2: return points
+    if not points or not embedder or len(points) < 2:
+        return points
+
     start_dedup = time.time()
     try:
         valid_pts = [p for p in points if len(p.split()) > 4]
-        if not valid_pts: return points
-        embeddings = embedder.encode(valid_pts, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size, device=embedder.device)
+        if not valid_pts:
+            return points
+
+        device = getattr(embedder, 'device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))  # FIXED
+        embeddings = embedder.encode(valid_pts, convert_to_tensor=True, show_progress_bar=False, batch_size=batch_size, device=device)
         cos_sim = util.cos_sim(embeddings, embeddings)
         to_remove = set()
+
         for i in range(len(valid_pts)):
-            if i in to_remove: continue
-            for j in range(i+1, len(valid_pts)):
-                if j in to_remove: continue
-                if cos_sim[i][j] > similarity_threshold: to_remove.add(j)
+            if i in to_remove:
+                continue
+            for j in range(i + 1, len(valid_pts)):
+                if j in to_remove:
+                    continue
+                if cos_sim[i][j] > similarity_threshold:
+                    to_remove.add(j)
+
         unique_pts = [valid_pts[i] for i in range(len(valid_pts)) if i not in to_remove]
-        short_pts = [p for p in points if len(p.split()) <= 4] # Add back short points
+        short_pts = list(dict.fromkeys([p for p in points if len(p.split()) <= 4]))  # FIXED: dedup short points
         print(f"INFO (llm_utils): Semantic deduplication took {time.time() - start_dedup:.2f}s.")
         return unique_pts + short_pts
-    except torch.cuda.OutOfMemoryError: print("ERROR (llm_utils): OOM during dedup. Skipping."); return points
-    except Exception as e: print(f"ERROR (llm_utils): Dedup Error: {e}"); traceback.print_exc(); return points
-# --- End remove_duplicates_semantic ---
+
+    except torch.cuda.OutOfMemoryError:
+        print("ERROR (llm_utils): OOM during dedup. Skipping.")
+        return points
+    except Exception as e:
+        print(f"ERROR (llm_utils): Dedup Error: {e}")
+        traceback.print_exc()
+        return points
 
 # --- generate_activity function ---
 def generate_activity(summary_text, grade_level_category, grade_level_desc):
-    """Fallback function to generate an activity if missing from main summary."""
-    # Relies on global 'model' and 'tokenizer' via model_generate
-    if not model or not tokenizer: return "- Review key points."
+    if not model or not tokenizer:
+        return "- Review key points."
     print("INFO (llm_utils): Generating fallback activity suggestion...")
-    act_type = {"lower":"fun activity/question","middle":"practical activity/thought question","higher":"provoking question/research idea/analysis task"}.get(grade_level_category,"activity")
-    prompt = f"Suggest ONE simple, engaging {act_type} for {grade_level_desc} based on this summary context:\n...{' '.join(re.sub(r'^#.*?\n','',summary_text).strip().split()[-200:])}\n\nActivity Suggestion:"
+    act_type = {"lower": "fun activity/question", "middle": "practical activity/thought question",
+                "higher": "provoking question/research idea/analysis task"}.get(grade_level_category, "activity")
+    context_tail = ' '.join(re.sub(r'^#.*?\n', '', summary_text).strip().split()[-200:])
+    prompt = (f"Suggest ONE simple, engaging {act_type} for {grade_level_desc} based on this summary context:\n...{context_tail}\n\nActivity Suggestion:")
     activity = model_generate(prompt, max_new_tokens=80, temperature=0.7)
-    if activity.startswith("Error:"): print(f"WARN (llm_utils): Fallback activity failed: {activity}"); activity = ""
-    else: activity = re.sub(r'^[\-\*\s]+','',activity.strip().replace("Activity Suggestion:","").strip()).strip(); activity = re.sub(r'\.$','',activity).strip()
-    if activity:
-        activity = f"- {activity[0].upper() + activity[1:]}"
-        if activity[-1].isalnum(): activity += '.'
-        return activity
-    else: print("WARN (llm_utils): Failed fallback activity."); fallbacks={"lower":"- Draw!", "middle":"- Explain!", "higher":"- Find example."}; return fallbacks.get(grade_level_category, "- Review points.")
-# --- End generate_activity ---
+
+    if activity.startswith("Error:"):
+        print(f"WARN (llm_utils): Fallback activity failed: {activity}")
+        activity = ""
+    else:
+        activity = re.sub(r'^[\-\*\s]+', '', activity.strip().replace("Activity Suggestion:", "").strip()).strip()
+        if activity:
+            activity = f"- {activity[0].upper() + activity[1:]}"
+            if activity and activity[-1].isalnum():
+                activity += '.'  # FIXED: Prevent empty activity crash
+        else:
+            print("WARN (llm_utils): Failed fallback activity.")
+            fallbacks = {"lower": "- Draw!", "middle": "- Explain!", "higher": "- Find example."}
+            activity = fallbacks.get(grade_level_category, "- Review points.")
+
+    return activity
+
