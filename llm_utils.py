@@ -342,7 +342,7 @@ def enhanced_post_process(summary, grade_level_category, enable_completion=True,
     # Process Lines & Structure
     lines=summary.split('\n'); processed_data, seen_frags=[], set()
     for line in lines:
-        s_line=line.strip();
+        s_line=line.strip()
         if not s_line:
             if processed_data and processed_data[-1]["type"]!="blank": processed_data.append({"text":"","type":"blank"}); continue
         l_type, content, is_head, is_bullet="paragraph", s_line, False, False
