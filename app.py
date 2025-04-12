@@ -93,6 +93,7 @@ try:
         dtype = None,              # Unsloth handles dtype optimization with 4bit
         load_in_4bit = True,       # Explicitly load in 4bit
         device_map = "auto",       # Let Unsloth / Accelerate handle device placement
+        llm_int8_enable_fp32_cpu_offload = True, # Enable CPU offload if needed
         # token = "hf_...", # Add token here if this specific model requires it
     )
     print("Unsloth LLM Model and Tokenizer loaded successfully!")
