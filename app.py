@@ -1,5 +1,17 @@
 # app.py (Reverted to Text-Only: Llama-3.1-8B-Instruct)
 
+# --- START FIX: Set multiprocessing start method ---
+import multiprocessing as mp
+# Try setting start_method to 'spawn' - MUST be done before importing torch/transformers
+try:
+    mp.set_start_method('spawn', force=True)
+    print("INFO: Multiprocessing start method set to 'spawn'.")
+except RuntimeError as e:
+    # This might happen if it's already been set or if called inappropriately
+    # Often safe to ignore if it's already set, but log a warning
+    print(f"WARN: Could not set multiprocessing start_method: {e}")
+# --- END FIX ---
+
 import os
 import re
 import traceback

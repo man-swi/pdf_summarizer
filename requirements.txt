@@ -1,28 +1,33 @@
-huggingface-hub>=0.20.0
-hf_transfer
+# requirements.txt (Updated for CUDA 12.8 -> using cu121 builds)
+
+# Web Framework & Server
 Flask>=3.0.0
 gunicorn
 
-# Transformers & Dependencies
-torch>=2.1.0
+# Core ML/Transformers Libraries
+# --- IMPORTANT: Specify CUDA version based on nvidia-smi (CUDA 12.8 -> use cu121) ---
+torch>=2.1.0 --index-url https://download.pytorch.org/whl/cu121
+# -----------------------------------------------------------------------------------
 transformers>=4.40.0
 accelerate>=0.25.0
 bitsandbytes>=0.41.1
-tiktoken # Added from previous install
-blobfile # <-- ADD THIS LINE
+sentence-transformers>=2.6.0 # For text deduplication embeddings
 
-# Embedder
-sentence-transformers>=2.6.0
+# Hugging Face Utilities
+huggingface-hub>=0.20.0
+hf_transfer # Optional: For potentially faster downloads from HF
 
 # PDF & Image Processing
-PyMuPDF
-pytesseract
-Pillow>=10.0.0
+PyMuPDF # PDF text/image extraction
+Pillow>=10.0.0 # Image handling
+pytesseract # OCR wrapper (requires Tesseract engine installed)
 
 # Text Processing & Utilities
 nltk>=3.8.0
-numpy
+numpy # Often a dependency
 
-# Common Dependencies
+# Other Potential Dependencies (verify if needed)
+tiktoken # Often used by OpenAI models/tokenizers, might be pulled by transformers
+# blobfile # Usually for cloud storage - remove if not explicitly needed by your code
 requests
 packaging
