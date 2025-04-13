@@ -1,23 +1,23 @@
-# requirements.txt (for Llama 3.2 Vision VLM)
-
-# Core Flask and Web Server
+huggingface-hub>=0.20.0
+hf_transfer
 Flask>=3.0.0
 gunicorn
 
-# Transformers & Dependencies (Ensure versions support the VLM)
-# Need relatively recent versions for Vision models
-torch>=2.1.0 # Or newer compatible version
-transformers>=4.40.0 # Check Llama 3.2 Vision model card for specific minimum version if possible
+# Transformers & Dependencies
+torch>=2.1.0
+transformers>=4.40.0
 accelerate>=0.25.0
 bitsandbytes>=0.41.1
+tiktoken # Added from previous install
+blobfile # <-- ADD THIS LINE
 
 # Embedder
 sentence-transformers>=2.6.0
 
 # PDF & Image Processing
-PyMuPDF # fitz package
+PyMuPDF
 pytesseract
-Pillow>=10.0.0 # Ensure a recent Pillow for image handling
+Pillow>=10.0.0
 
 # Text Processing & Utilities
 nltk>=3.8.0
@@ -26,4 +26,3 @@ numpy
 # Common Dependencies
 requests
 packaging
-huggingface-hub>=0.20.0

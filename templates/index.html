@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Summarizer v2</title> <!-- Updated Title -->
-    <link rel="stylesheet" href="/static/style.css"> <!-- Link to CSS -->
+    <title>PDF Summarizer v2</title>
+    <link rel="stylesheet" href="/static/style.css"> <!-- Ensure style.css is in static folder -->
+    <link rel="icon" href="data:,"> <!-- Basic empty favicon to prevent 404 -->
 </head>
 <body>
     <header>
-        <h1>📚 PDF Summarizer v2</h1> <!-- Updated Header -->
+        <h1>📚 PDF Summarizer v2</h1>
         <p>Upload a textbook chapter (PDF), choose settings, and get an AI-generated summary.</p>
     </header>
 
@@ -16,16 +17,19 @@
         <section id="input-section">
             <h2>Settings</h2>
             <form id="summary-form">
+                <!-- File Input -->
                 <div class="form-group">
                     <label for="pdfFile">1. Upload PDF Document:</label>
                     <input type="file" id="pdfFile" name="pdfFile" accept=".pdf" required>
                 </div>
 
+                <!-- Grade Level -->
                 <div class="form-group">
                     <label for="grade">2. Target Grade Level: <span id="grade-value">6</span></label>
                     <input type="range" id="grade" name="grade" min="1" max="12" value="6">
                 </div>
 
+                <!-- Duration/Length -->
                 <div class="form-group">
                     <label>3. Target Summary Length:</label>
                     <div class="radio-group">
@@ -35,10 +39,10 @@
                     </div>
                 </div>
 
-                <!-- Moved Toggles Together -->
+                <!-- Processing Toggles -->
                 <div class="form-group toggle-group">
                      <label>4. Processing Options:</label>
-                     <label title="Use Tesseract to read text from images (can be significantly slower).">
+                     <label title="Use Tesseract OCR to read text from images (can be significantly slower).">
                          <input type="checkbox" id="ocr" name="ocr"> Enable Image OCR
                      </label>
                      <label title="Use specific prompts optimized for mathematical content if detected.">
@@ -52,19 +56,20 @@
                      </label>
                 </div>
 
-
-                <!-- Advanced Options -->
-                <details class="form-group">
-                    <summary>Advanced Chunking Options</summary>
-                    <div class="advanced-options">
-                        <label for="chunkSize">Chunk Size (words):</label>
+                <!-- Chunking Options (Moved out of <details>) -->
+                <div class="form-group advanced-options">
+                    <label>5. Advanced Chunking Options:</label> <!-- Changed label style -->
+                    <div>
+                        <label for="chunkSize" style="display:inline-block; margin-right: 0.5em;">Chunk Size (words):</label>
                         <input type="number" id="chunkSize" name="chunkSize" value="800" min="200" max="4000" step="50" title="Approximate words per chunk before LLM processing.">
-                        <br> <!-- Line break for clarity -->
-                        <label for="overlap">Chunk Overlap (words):</label>
+                    </div>
+                    <div style="margin-top: 0.5em;">
+                        <label for="overlap" style="display:inline-block; margin-right: 0.5em;">Chunk Overlap (words):</label>
                         <input type="number" id="overlap" name="overlap" value="75" min="0" max="500" step="10" title="Approximate word overlap between consecutive chunks.">
                     </div>
-                </details>
+                </div>
 
+                <!-- Submit Button -->
                 <button type="submit" id="submit-button">✨ Generate Summary ✨</button>
             </form>
         </section>
@@ -75,7 +80,7 @@
                 <div id="loader" class="loader" style="display: none;"></div>
                 <p id="status-message">Ready. Select a PDF and options.</p>
             </div>
-            <!-- Added container for summary info -->
+            <!-- Output Area -->
             <div id="summary-output" style="display: none;">
                 <div class="summary-info">
                     <h3>Generated Summary</h3>
@@ -83,15 +88,16 @@
                     <span>|</span>
                     <span>Processing Time: <span id="processing-time">0</span>s</span>
                 </div>
-                <textarea id="summary-text" rows="25" readonly></textarea> <!-- Increased rows -->
+                <textarea id="summary-text" rows="25" readonly></textarea>
                 <button id="download-button" style="display: none;">⬇️ Download Summary</button>
             </div>
-             <div id="error-area" class="error-message" style="display: none;"></div> <!-- Changed to div for better styling -->
+             <!-- Error Display Area -->
+             <div id="error-area" class="error-message" style="display: none;"></div>
         </section>
     </main>
 
     <footer>
-        <p>PDF Summarizer v2 Interface</p> <!-- Updated Footer -->
+        <p>PDF Summarizer v2 Interface</p>
     </footer>
 
     <script src="/static/script.js"></script> <!-- Link to JS -->

@@ -1,4 +1,4 @@
-# app.py (Main Flask Application - New Structure)
+# app.py (Reverted to Text-Only: Llama-3.1-8B-Instruct)
 
 import os
 import re
@@ -6,12 +6,13 @@ import traceback
 import tempfile
 import time
 import io
-import pytesseract  # Added to handle pytesseract.TesseractNotFoundError
+import pytesseract # Keep for OCR text extraction from images
 import torch
 from flask import Flask, request, render_template, jsonify, send_from_directory
+from logging.config import dictConfig
 
-# Import model loading classes and quantization config
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+# Import model loading classes, tokenizer, and quantization config
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig # Back to AutoTokenizer
 from sentence_transformers import SentenceTransformer
 
 # Import utility modules
@@ -19,185 +20,252 @@ import pdf_utils
 import text_utils
 import llm_utils
 
-# --- Configuration & Model Loading ---
-print("--- Starting Flask App Setup ---")
+# --- Configure Flask Logging ---
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s (%(lineno)d): %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 
-# --- Tesseract Configuration (Handled in pdf_utils) ---
-# pdf_utils checks for Tesseract path at import time.
+# --- Flask App Initialization ---
+app = Flask(__name__, template_folder='templates', static_folder='static')
+app.logger.info("--- Starting Flask App Setup ---")
+
+# --- Tesseract Configuration (pdf_utils) ---
+# Ensure Tesseract is installed if OCR toggle is used
 
 # --- Device Setup ---
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"INFO (app): PyTorch device detected: {device}")
+if torch.cuda.is_available():
+    app.logger.info(f"PyTorch reports CUDA is available. Device count: {torch.cuda.device_count()}")
+else:
+    app.logger.warning("PyTorch reports CUDA is NOT available. Model will run on CPU (very slow).")
 
 # --- Model Configuration ---
-# Using standard transformers loading with offload workaround for unsloth weights
-LLM_MODEL_NAME = "meta-llama/Llama-3.2-11B-Vision-Instruct"
-EMBEDDER_MODEL_NAME = 'all-MiniLM-L6-v2'
+LLM_MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct" # Changed model name
+EMBEDDER_MODEL_NAME = 'all-MiniLM-L6-v2' # Text embedder for deduplication
 
 # Configure 4-bit quantization
 quantization_config = BitsAndBytesConfig(
     load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.bfloat16,
+    bnb_4bit_compute_dtype=torch.bfloat16, # Good for Ampere (A10G)
     bnb_4bit_use_double_quant=True,
     bnb_4bit_quant_type="nf4"
 )
-print(f"INFO (app): Using BitsAndBytes quantization config: {quantization_config}")
+app.logger.info(f"Using BitsAndBytes quantization config: {quantization_config}")
 
-# Define offload directory
-offload_directory = "./offload_cache" # Ensure this is writable
-os.makedirs(offload_directory, exist_ok=True)
-print(f"INFO (app): Using offload directory: {offload_directory}")
-
-# --- Load Models ---
+# --- Load Models and Tokenizer ---
 model = None
-tokenizer = None
+tokenizer = None # Changed back from processor
 embedder = None
 
 try:
-    print(f"INFO (app): Loading LLM tokenizer: {LLM_MODEL_NAME}...")
+    # --- CRITICAL CHANGE: Load AutoTokenizer ---
+    app.logger.info(f"Loading LLM tokenizer: {LLM_MODEL_NAME}...")
     tokenizer = AutoTokenizer.from_pretrained(LLM_MODEL_NAME)
-    print("INFO (app): Tokenizer loaded.")
+    app.logger.info("Tokenizer loaded.")
+    # --- END CRITICAL CHANGE ---
 
-    print(f"INFO (app): Loading LLM model: {LLM_MODEL_NAME} with quantization & offloading...")
-    # Use standard AutoModelForCausalLM with offload flags based on previous errors
+    app.logger.info(f"Loading LLM model: {LLM_MODEL_NAME} with quantization (Offloading DISABLED)...")
     model = AutoModelForCausalLM.from_pretrained(
-    LLM_MODEL_NAME,
-    quantization_config=quantization_config,
-    device_map="auto",
-    offload_folder=offload_directory,
-    offload_state_dict=True
+        LLM_MODEL_NAME,
+        quantization_config=quantization_config,
+        device_map="auto", # Let accelerate handle placement
+        torch_dtype=torch.bfloat16,
+        # trust_remote_code=False # Usually not needed for standard instruct models like Llama 3.1
     )
+    app.logger.info("LLM Model loaded successfully!")
 
-    print("INFO (app): LLM Model loaded successfully!")
+    if torch.cuda.is_available():
+         try:
+             if any(p.device.type == 'cuda' for p in model.parameters()):
+                 allocated = torch.cuda.memory_allocated(0)/1024**2
+                 reserved = torch.cuda.memory_reserved(0)/1024**2
+                 app.logger.info(f"GPU Memory after LLM Load: Allocated={allocated:.2f}MB, Reserved={reserved:.2f}MB")
+             else: app.logger.warning("Model parameters not found on CUDA device after load.")
+         except Exception as e: app.logger.warning(f"Could not get GPU memory info: {e}")
+    else: app.logger.info("Model loaded on CPU.")
 
 except Exception as e:
-    print(f"FATAL ERROR (app): Could not load LLM model {LLM_MODEL_NAME}: {e}")
-    traceback.print_exc()
-    if "out of memory" in str(e).lower(): print("Attempting to clear CUDA cache..."); torch.cuda.empty_cache()
-    exit(1) # Exit if core model fails to load
-
-try:
-    print(f"INFO (app): Loading Sentence Embedder: {EMBEDDER_MODEL_NAME}...")
-    embedder = SentenceTransformer(EMBEDDER_MODEL_NAME, device=device)
-    print("INFO (app): Embedder loaded successfully!")
-except Exception as e:
-    print(f"ERROR (app): Could not load Sentence Transformer {EMBEDDER_MODEL_NAME}: {e}")
-    embedder = None # Allow app to run without embedder
-    print("WARN (app): Embedder failed to load. Semantic deduplication will be disabled.")
-
-# --- Initialize LLM Utilities Module with Loaded Models ---
-if model and tokenizer:
-    llm_utils.initialize_globals(model, tokenizer, embedder)
-else:
-    print("FATAL ERROR (app): LLM Model or Tokenizer failed to load. Cannot initialize llm_utils.")
+    app.logger.fatal(f"CRITICAL ERROR: Could not load LLM tokenizer or model {LLM_MODEL_NAME}: {e}")
+    app.logger.fatal(traceback.format_exc())
+    if "out of memory" in str(e).lower() and torch.cuda.is_available():
+        app.logger.error("CUDA Out of Memory during model/tokenizer loading!")
+        torch.cuda.empty_cache()
+    # Removed trust_remote_code specific message as it's likely false now
+    elif isinstance(e, ImportError):
+         app.logger.error(f"ImportError: A required library might be missing. Check requirements.txt. Error: {e}")
     exit(1)
 
-print("--- Flask App Setup Complete ---")
+# Load Sentence Embedder (Text Deduplication)
+try:
+    app.logger.info(f"Loading Sentence Embedder: {EMBEDDER_MODEL_NAME}...")
+    embedder_device = 'cpu'
+    if torch.cuda.is_available():
+        try:
+            # Check VRAM roughly AFTER LLM load (8B model uses less than 11B)
+            free_mem, _ = torch.cuda.mem_get_info(0); free_mem_mb = free_mem / 1024**2
+            app.logger.info(f"GPU Memory Free for Embedder: {free_mem_mb:.2f} MB")
+            if free_mem_mb > 1500: # Allow slightly more room
+                embedder_device = 'cuda'
+            else: app.logger.warning("Low free VRAM, placing embedder on CPU.")
+        except Exception as e: app.logger.warning(f"Could not check VRAM for embedder placement (CPU default): {e}")
 
-# --- Flask App Initialization ---
-app = Flask(__name__, template_folder='templates', static_folder='static')
+    embedder = SentenceTransformer(EMBEDDER_MODEL_NAME, device=embedder_device)
+    app.logger.info(f"Embedder loaded onto device: '{embedder_device}'")
+except Exception as e:
+    app.logger.error(f"Could not load Sentence Transformer {EMBEDDER_MODEL_NAME}: {e}")
+    embedder = None
+    app.logger.warning("Embedder failed. Semantic deduplication disabled.")
+
+# --- Initialize LLM Utilities Module ---
+# --- CRITICAL CHANGE: Pass tokenizer ---
+if model and tokenizer:
+    llm_utils.initialize_globals(model, tokenizer, embedder) # Pass tokenizer
+else:
+    app.logger.fatal("LLM Model or Tokenizer failed to load. Cannot initialize llm_utils.")
+    exit(1)
+# --- END CRITICAL CHANGE ---
+
+app.logger.info("--- Flask App Setup Complete ---")
 
 # --- Flask Routes ---
 @app.route('/')
 def index():
-    """Serves the main HTML page."""
     return render_template('index.html')
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
-    """Serves static files (CSS, JS)."""
     return send_from_directory(app.static_folder, filename)
 
 @app.route('/summarize', methods=['POST'])
 def summarize_pdf():
-    """API endpoint to handle PDF summarization."""
+    app.logger.info(f"Received request for /summarize from {request.remote_addr}")
     start_time = time.time()
 
-    if 'pdfFile' not in request.files: return jsonify({"error": "No PDF file provided."}), 400
+    if 'pdfFile' not in request.files:
+        app.logger.warning("No 'pdfFile' in request.")
+        return jsonify({"error": "No PDF file provided."}), 400
     file = request.files['pdfFile']
-    if file.filename == '': return jsonify({"error": "No selected file."}), 400
-    if not file.filename.lower().endswith('.pdf'): return jsonify({"error": "Invalid file type. Please upload a PDF."}), 400
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        app.logger.warning(f"Invalid/missing filename or type: {file.filename}")
+        return jsonify({"error": "Invalid file type or missing filename. Please upload a PDF."}), 400
 
     # --- Get form data ---
     try:
         grade = int(request.form.get('grade', 6))
         duration = int(request.form.get('duration', 20))
-        ocr_enabled = request.form.get('ocr', 'false').lower() == 'true'
-        # Add toggles for math, completion, deduplication if needed in form
-        math_handling_enabled = request.form.get('mathHandling', 'true').lower() == 'true' # Example toggle
+        ocr_enabled = request.form.get('ocr', 'false').lower() == 'true' # OCR still relevant
+        math_handling_enabled = request.form.get('mathHandling', 'true').lower() == 'true'
         sentence_completion_enabled = request.form.get('sentenceCompletion', 'true').lower() == 'true'
         deduplication_enabled = request.form.get('deduplication', 'true').lower() == 'true'
-        # Add chunk/overlap if form includes them
-        chunk_size = int(request.form.get('chunkSize', 800)) # Default larger chunk
-        overlap = int(request.form.get('overlap', 75))      # Default larger overlap
+        chunk_size = int(request.form.get('chunkSize', 800)) # Chunking is relevant again
+        overlap = int(request.form.get('overlap', 75)) # Overlap is relevant again
 
-        # Validate chunk/overlap
-        if not (200 <= chunk_size <= 4000): chunk_size = 800 # Wider range
-        if not (0 <= overlap <= chunk_size // 2): overlap = 75 # Adjusted default overlap limit
+        if not (200 <= chunk_size <= 4000): chunk_size = 800
+        if not (0 <= overlap <= chunk_size // 2): overlap = 75
 
-    except ValueError:
-        return jsonify({"error": "Invalid form data (grade, duration, chunk size, overlap must be numbers)."}), 400
+        app.logger.info(f"Request Params - Grade:{grade}, Duration:{duration}, OCR:{ocr_enabled}, Math:{math_handling_enabled}, Completion:{sentence_completion_enabled}, Dedup:{deduplication_enabled}, Chunk:{chunk_size}, Overlap:{overlap}")
+
+    except ValueError as e:
+        app.logger.error(f"Invalid form data: {e}")
+        return jsonify({"error": "Invalid form data (grade, duration, etc., must be numbers)."}), 400
 
     pdf_path = None
     try:
-        # --- Save temporary file ---
-        fd, pdf_path = tempfile.mkstemp(suffix=".pdf")
-        os.close(fd)
-        file.save(pdf_path)
-        print(f"INFO (app): PDF saved temporarily to: {pdf_path}")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", dir=tempfile.gettempdir()) as temp_pdf:
+            file.save(temp_pdf.name); pdf_path = temp_pdf.name
+        app.logger.info(f"PDF saved to: {pdf_path}")
 
         # --- 1. Extract Elements (Text and Images+OCR) ---
         extract_start = time.time()
-        # Pass OCR flag from form
+        # Pass ocr_enabled flag - pdf_utils extracts text/images
         elements = pdf_utils.extract_pdf_elements(pdf_path, perform_ocr=ocr_enabled)
-        print(f"INFO (app): PDF element extraction took {time.time() - extract_start:.2f}s")
-        if not elements:
-            return jsonify({"error": "Could not extract any content from PDF. Check file."}), 400
+        app.logger.info(f"PDF element extraction took {time.time() - extract_start:.2f}s. Found {len(elements)} elements.")
 
-        # --- 2. Combine Text for Processing ---
-        # This helper function now exists in pdf_utils, combines text and OCR results
+        if not elements:
+            app.logger.warning(f"No elements extracted from PDF: {pdf_path}")
+            # Changed error message slightly as images aren't directly used by LLM now
+            return jsonify({"error": "Could not extract any text content (or OCR failed/disabled). Check the PDF."}), 400
+
+        # --- 2. Combine and Process Text for LLM ---
+        # --- REVERTED LOGIC START ---
+        process_start = time.time()
+        # Combine text elements and OCR'd text (if any) into a single string
         combined_text = pdf_utils.combine_elements_for_llm(elements)
+
         if not combined_text or len(combined_text.strip()) < 50:
+             app.logger.warning("No significant text content found after extraction/OCR.")
              return jsonify({"error": "No significant text content found after extraction/OCR."}), 400
 
-        # --- 3. Process Text (Clean, Detect Math, Chunk) ---
-        process_start = time.time()
         # Clean the combined text
         cleaned_text = text_utils.clean_extracted_text(combined_text)
-        # Detect math content (using math_handling_enabled flag if desired)
+
+        # Detect math content (heuristic)
         has_math = text_utils.detect_math_content(cleaned_text) if math_handling_enabled else False
-        print(f"INFO (app): Math content detected: {has_math}")
+        app.logger.info(f"Math content detected (heuristic): {has_math}")
+
         # Chunk the cleaned text
         chunks = text_utils.split_text_into_chunks(cleaned_text, chunk_size=chunk_size, overlap=overlap)
-        if not chunks: return jsonify({"error": "Failed to split text into chunks."}), 500
-        print(f"INFO (app): Text processing (clean/detect/chunk) took {time.time() - process_start:.2f}s")
+        if not chunks:
+             app.logger.error("Failed to split text into chunks.")
+             return jsonify({"error": "Failed to split extracted text into processable chunks."}), 500
+        app.logger.info(f"Text processing (combine/clean/detect/chunk) took {time.time() - process_start:.2f}s. Generated {len(chunks)} text chunks.")
+        # --- REVERTED LOGIC END ---
 
-        # --- 4. Generate Summary using LLM Utils ---
-        print("INFO (app): Generating summary...")
+
+        # --- 3. Generate Summary using Text-Only LLM Utils ---
+        app.logger.info("Generating summary using Text LLM...")
         gen_start = time.time()
         grade_level_category, grade_level_desc = llm_utils.determine_reading_level(grade)
-        # Pass refinement flags to llm_utils.generate_summary
+
+        # --- MODIFICATION: Pass text chunks ---
         summary = llm_utils.generate_summary(
-            chunks,
-            grade_level_category,
-            grade_level_desc,
-            duration,
-            has_math=has_math,
+            text_chunks=chunks, # Pass the text chunks
+            # elements=elements, # Removed elements passing
+            grade_level_category=grade_level_category,
+            grade_level_desc=grade_level_desc,
+            duration_minutes=duration,
+            has_math=has_math, # Pass math detection flag
             enable_completion=sentence_completion_enabled,
             enable_deduplication=deduplication_enabled
         )
-        print(f"INFO (app): Core summary generation took {time.time() - gen_start:.2f}s")
+        # --- END MODIFICATION ---
+        gen_duration = time.time() - gen_start
+        app.logger.info(f"Core summary generation call took {gen_duration:.2f}s")
 
-        # Check for errors during summary generation
-        if summary.startswith("Error:"):
-             error_message = summary.split("Error:", 1)[1].strip()
-             print(f"ERROR (app): Summarization process failed: {error_message}")
-             return jsonify({"error": f"Summarization failed: {error_message}"}), 500
+        # Error checking (same as before)
+        if isinstance(summary, str) and summary.startswith("Error:"):
+             error_message = summary
+             app.logger.error(f"Summarization process returned an error: {error_message}")
+             if "oom" in error_message.lower() or "out of memory" in error_message.lower():
+                 if torch.cuda.is_available(): torch.cuda.empty_cache()
+                 return jsonify({"error": f"Summarization failed due to insufficient GPU memory. Try a smaller document or shorter summary settings."}), 500
+             else:
+                 return jsonify({"error": f"Summarization failed: {error_message}"}), 500
+        elif not isinstance(summary, str) or not summary.strip():
+             app.logger.error(f"Summarization process returned invalid/empty result. Type: {type(summary)}")
+             return jsonify({"error": "Summarization failed to produce a valid result."}), 500
 
-        # --- 5. Prepare Response ---
+        # --- 4. Prepare Response ---
         word_count = len(summary.split())
         total_time = time.time() - start_time
-        print(f"INFO (app): Summary generated successfully. Word count: {word_count}. Total request time: {total_time:.2f}s")
+        app.logger.info(f"Summary generated successfully. Word count: {word_count}. Total request time: {total_time:.2f}s")
+
+        if torch.cuda.is_available():
+            try:
+                 allocated = torch.cuda.memory_allocated(0)/1024**2; reserved = torch.cuda.memory_reserved(0)/1024**2
+                 app.logger.info(f"GPU Memory after request: Allocated={allocated:.2f}MB, Reserved={reserved:.2f}MB")
+            except Exception as e: app.logger.warning(f"Could not get GPU memory after request: {e}")
 
         return jsonify({
             "summary": summary,
@@ -207,31 +275,24 @@ def summarize_pdf():
 
     # --- Error Handling ---
     except FileNotFoundError as e:
-         print(f"ERROR (app): {e}"); return jsonify({"error": str(e)}), 404
-    except pytesseract.TesseractNotFoundError:
-         err_msg = "Tesseract OCR Engine not found/configured on server."; print(f"ERROR (app): {err_msg}"); return jsonify({"error": err_msg}), 500
+         app.logger.error(f"FileNotFoundError: {e}", exc_info=True); return jsonify({"error": f"Server error: File not found - {e}"}), 404
+    except pytesseract.TesseractNotFoundError: # Keep this relevant for OCR toggle
+         err_msg = "Tesseract OCR Engine not found/configured. OCR text extraction from images will fail."
+         app.logger.error(err_msg, exc_info=False)
+         return jsonify({"error": err_msg}), 500
     except torch.cuda.OutOfMemoryError:
-         err_msg = "GPU ran out of memory during processing. Try smaller doc/settings."; print(f"ERROR (app): {err_msg}"); traceback.print_exc(); return jsonify({"error": err_msg}), 500
+         err_msg = "GPU ran out of memory during processing."
+         app.logger.error(err_msg, exc_info=True); torch.cuda.empty_cache()
+         return jsonify({"error": f"{err_msg} Try a smaller document/shorter summary/disable OCR."}), 500
     except Exception as e:
-        print(f"--- ERROR (app): An Unexpected Error Occurred ---")
-        print(f"Error Type: {type(e).__name__}"); print(f"Error Details: {str(e)}"); traceback.print_exc()
-        return jsonify({"error": "An unexpected server error occurred processing the PDF. Please check server logs."}), 500
+        app.logger.error(f"Unexpected Error Occurred: {type(e).__name__} - {e}", exc_info=True)
+        return jsonify({"error": "An unexpected server error occurred. Check server logs."}), 500
     finally:
-        # --- Clean up temporary file ---
         if pdf_path and os.path.exists(pdf_path):
-            try:
-                os.remove(pdf_path); print(f"INFO (app): Temporary file removed: {pdf_path}")
-            except Exception as e:
-                print(f"ERROR (app): Error removing temp file {pdf_path}: {e}")
-
+            try: os.remove(pdf_path); app.logger.info(f"Temp file removed: {pdf_path}")
+            except Exception as e: app.logger.error(f"Error removing temp file {pdf_path}: {e}")
 
 # --- Run Flask App ---
-# This block is primarily for local development testing.
-# Gunicorn will directly import and run the 'app' object in production.
 if __name__ == '__main__':
-    print("Starting Flask development server (for testing only)...")
-    # Use host='0.0.0.0' to make it accessible on your local network
-    # Use debug=False for production or testing performance
-    # Set threaded=True or use a production server like gunicorn/waitress for handling multiple requests
-    # Port 8501 matches Dockerfile EXPOSE and Nginx proxy_pass
+    app.logger.warning("Starting Flask dev server (use Gunicorn/Nginx for production)...")
     app.run(host='0.0.0.0', port=8501, debug=False, threaded=True)

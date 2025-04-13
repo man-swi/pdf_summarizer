@@ -1,33 +1,18 @@
 # .dockerignore
 
-# Ignore Python virtual environments
-llama_env/
-venv/
-env/
-*/__pycache__/
+__pycache__/
 *.pyc
 *.pyo
-
-# Ignore Git directory
+*.pyd
+.Python
+env/
+venv/
+llama_env/
 .git/
 .gitignore
-
-# Ignore Docker related files if they end up here
 .dockerignore
-Dockerfile*
-
-# Ignore downloaded model files (if you stored them here)
-# Add specific model directories or file patterns if applicable
-# e.g., models/
-# e.g., *.bin
-# e.g., *.pt
-
-# Ignore large datasets, logs, temp files etc.
-data/
-logs/
+Dockerfile
 *.log
-tmp/
-
-# Ignore IDE/editor specific folders
-.vscode/
-.idea/
+offload_cache/ # If this exists
+*.pdf # Don't copy example pdfs if any
+*.sock
